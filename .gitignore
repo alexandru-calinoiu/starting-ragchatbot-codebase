@@ -29,3 +29,9 @@ uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude
+local-notes.md
+
+# Playwright MCP
+.playwright-mcp/
