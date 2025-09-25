@@ -93,3 +93,6 @@ All settings in `backend/config.py`:
 - Single-page application (vanilla JS)
 - Files: `frontend/index.html`, `script.js`, `style.css`
 - No build step required
+
+# Individual Preferences
+- @local-notes.md

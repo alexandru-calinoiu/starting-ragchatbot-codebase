@@ -245,29 +245,49 @@ header h1 {
 
 /* Collapsible Sources */
 .sources-collapsible {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    margin-top: 0.75rem;
+    background: rgba(37, 99, 235, 0.05);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 8px;
+    padding: 0.5rem;
 }
 
 .sources-collapsible summary {
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
+    padding: 0.375rem 0.5rem;
     user-select: none;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.825rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.sources-collapsible summary::before {
+    content: "📄";
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
 }
 
 .sources-collapsible summary:hover {
-    color: var(--text-primary);
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary-hover);
 }
 
 .sources-collapsible[open] summary {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.2);
+    padding-bottom: 0.5rem;
 }
 
 .sources-content {
-    padding: 0 0.5rem 0.25rem 1.5rem;
-    color: var(--text-secondary);
+    padding: 0 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    line-height: 1.5;
 }
 
 /* Markdown formatting styles */
@@ -740,4 +760,58 @@ details[open] .suggested-header::before {
     .sidebar {
         width: 280px;
     }
+}
+
+/* Source Links Styling */
+.source-link {
+    display: inline-flex;
+    align-items: center;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.source-link::before {
+    content: "🔗";
+    margin-right: 0.375rem;
+    font-size: 0.75rem;
+}
+
+.source-link:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    text-decoration: none;
+}
+
+.source-link:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+    border-radius: 20px;
+}
+
+.source-text {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface);
+    color: var(--text-primary);
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+}
+
+.source-text::before {
+    content: "📋";
+    margin-right: 0.375rem;
+    font-size: 0.75rem;
 }

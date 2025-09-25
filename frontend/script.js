@@ -125,10 +125,21 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Parse sources and create clickable links where available
+        const formattedSources = sources.map(source => {
+            // Check if source contains a link (format: "text|link")
+            if (source.includes('|')) {
+                const [displayText, link] = source.split('|');
+                return `<a href="${link}" target="_blank" rel="noopener noreferrer" class="source-link">${displayText}</a>`;
+            } else {
+                return `<span class="source-text">${source}</span>`;
+            }
+        });
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${formattedSources.join(', ')}</div>
             </details>
         `;
     }
