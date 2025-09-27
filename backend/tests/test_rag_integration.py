@@ -19,9 +19,9 @@ class TestRAGSystemQuery:
         mock_response.stop_reason = "end_turn"
         mock_client.messages.create.return_value = mock_response
 
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client):
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store_with_query_support):
             rag = RAGSystem(test_config)
-            rag.vector_store = mock_vector_store_with_query_support
 
             response, sources = rag.query("What is computer use?")
 
@@ -46,9 +46,9 @@ class TestRAGSystemQuery:
 
         mock_client.messages.create.side_effect = [tool_use_response, final_response]
 
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client):
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store_with_query_support):
             rag = RAGSystem(test_config)
-            rag.vector_store = mock_vector_store_with_query_support
 
             response, sources = rag.query("What is computer use in the course?")
 
@@ -72,9 +72,9 @@ class TestRAGSystemQuery:
 
         mock_client.messages.create.side_effect = [tool_use_response, final_response]
 
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client):
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store_with_query_support):
             rag = RAGSystem(test_config)
-            rag.vector_store = mock_vector_store_with_query_support
 
             # Recreate search tool with new vector store
             rag.search_tool = CourseSearchTool(mock_vector_store_with_query_support)
@@ -91,9 +91,9 @@ class TestRAGSystemQuery:
         mock_response.stop_reason = "end_turn"
         mock_client.messages.create.return_value = mock_response
 
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client):
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store_with_query_support):
             rag = RAGSystem(test_config)
-            rag.vector_store = mock_vector_store_with_query_support
             session_id = rag.session_manager.create_session()
             rag.session_manager.add_exchange(session_id, "Previous question", "Previous answer")
 
@@ -110,9 +110,9 @@ class TestRAGSystemQuery:
         mock_response.stop_reason = "end_turn"
         mock_client.messages.create.return_value = mock_response
 
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client):
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store_with_query_support):
             rag = RAGSystem(test_config)
-            rag.vector_store = mock_vector_store_with_query_support
             session_id = rag.session_manager.create_session()
 
             response, sources = rag.query("What is AI?", session_id=session_id)
@@ -125,20 +125,26 @@ class TestRAGSystemQuery:
 class TestRAGSystemCourseManagement:
 
     def test_get_course_analytics_returns_dict_with_total_courses(self, test_config):
-        with patch('ai_generator.anthropic.Anthropic'):
+        mock_vector_store = Mock()
+        mock_vector_store.get_course_count = Mock(return_value=3)
+        mock_vector_store.get_existing_course_titles = Mock(return_value=["Course1", "Course2", "Course3"])
+
+        with patch('ai_generator.anthropic.Anthropic'), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store):
             rag = RAGSystem(test_config)
-            rag.vector_store.get_course_count = Mock(return_value=3)
-            rag.vector_store.get_existing_course_titles = Mock(return_value=["Course1", "Course2", "Course3"])
 
             analytics = rag.get_course_analytics()
 
             assert analytics["total_courses"] == 3
 
     def test_get_course_analytics_returns_dict_with_course_titles(self, test_config):
-        with patch('ai_generator.anthropic.Anthropic'):
+        mock_vector_store = Mock()
+        mock_vector_store.get_course_count = Mock(return_value=2)
+        mock_vector_store.get_existing_course_titles = Mock(return_value=["CourseA", "CourseB"])
+
+        with patch('ai_generator.anthropic.Anthropic'), \
+             patch('rag_system.VectorStore', return_value=mock_vector_store):
             rag = RAGSystem(test_config)
-            rag.vector_store.get_course_count = Mock(return_value=2)
-            rag.vector_store.get_existing_course_titles = Mock(return_value=["CourseA", "CourseB"])
 
             analytics = rag.get_course_analytics()
 
@@ -166,14 +172,15 @@ class TestRAGSystemWithEmptyVectorStore:
 
         mock_client.messages.create.side_effect = [tool_use_response, final_response]
 
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client):
+        empty_mock_store = Mock()
+        empty_mock_store.search.side_effect = lambda **kwargs: (
+            SearchResults([], [], [], error=f"No mock registered for query: '{kwargs.get('query', '')}'")
+        )
+        empty_mock_store.get_lesson_link = Mock(return_value=None)
+
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_client), \
+             patch('rag_system.VectorStore', return_value=empty_mock_store):
             rag = RAGSystem(test_config)
-            empty_mock_store = Mock()
-            empty_mock_store.search.side_effect = lambda **kwargs: (
-                SearchResults([], [], [], error=f"No mock registered for query: '{kwargs.get('query', '')}'")
-            )
-            empty_mock_store.get_lesson_link = Mock(return_value=None)
-            rag.vector_store = empty_mock_store
 
             response, sources = rag.query("What is computer use?")
 
