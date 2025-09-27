@@ -54,3 +54,12 @@ The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`
 
+## Testing
+
+Run the comprehensive test suite:
+
+```bash
+cd backend
+uv run pytest tests/ -v
+```
+

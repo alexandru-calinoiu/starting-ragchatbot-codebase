@@ -34,6 +34,26 @@ uv run pytest <test_file.py>
 uv run <command>
 ```
 
+### Testing
+```bash
+# Run all tests
+uv run pytest tests/ -v
+
+# Run specific test file
+uv run pytest tests/test_search_tools.py -v
+
+# Run tests with coverage (if coverage is installed)
+uv run pytest tests/ --cov=backend
+```
+
+**Development Workflow for New Features:**
+1. Write tests first (TDD approach)
+2. Run existing tests: `uv run pytest` to ensure no regressions
+3. Implement feature
+4. Add/update tests for new functionality
+5. Ensure ALL tests pass before committing
+6. Consider testing edge cases and error conditions
+
 ### Environment Setup
 ```bash
 # Copy example env file and add your Anthropic API key
