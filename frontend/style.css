@@ -5,10 +5,18 @@
     padding: 0;
 }
 
-/* CSS Variables - Dark Theme (Default) */
+/* CSS Variables - Default */
 :root {
     --primary-color: #2563eb;
     --primary-hover: #1d4ed8;
+    --transition-speed: 0.3s;
+    --radius: 12px;
+    --focus-ring: rgba(37, 99, 235, 0.2);
+}
+
+/* Dark Theme */
+:root,
+[data-theme="dark"] {
     --background: #0f172a;
     --surface: #1e293b;
     --surface-hover: #334155;
@@ -18,17 +26,12 @@
     --user-message: #2563eb;
     --assistant-message: #374151;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-    --radius: 12px;
-    --focus-ring: rgba(37, 99, 235, 0.2);
     --welcome-bg: #1e3a5f;
     --welcome-border: #2563eb;
-    --transition-speed: 0.3s;
 }
 
 /* Light Theme */
 [data-theme="light"] {
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
     --background: #ffffff;
     --surface: #f8fafc;
     --surface-hover: #e2e8f0;
@@ -38,7 +41,6 @@
     --user-message: #2563eb;
     --assistant-message: #f1f5f9;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --focus-ring: rgba(37, 99, 235, 0.2);
     --welcome-bg: #ebf5ff;
     --welcome-border: #2563eb;
 }
