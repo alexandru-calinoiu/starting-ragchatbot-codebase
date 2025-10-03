@@ -47,14 +47,17 @@ Provide only the direct answer to what was asked.
     
     def generate_response(self, query: str,
                          conversation_history: Optional[str] = None,
-                         tool_manager=None) -> str:
+                         tool_manager=None,
+                         max_rounds: int = 2) -> str:
         """
-        Generate AI response with optional tool usage and conversation context.
+        Generate AI response with sequential tool calling support (up to max_rounds).
+        Implements graceful error handling - continues even if individual tool calls fail.
 
         Args:
             query: The user's question or request
             conversation_history: Previous messages for context
             tool_manager: Manager to execute tools (provides tool definitions and execution)
+            max_rounds: Maximum number of tool calling rounds (default: 2)
 
         Returns:
             Generated response as string
@@ -70,72 +73,130 @@ Provide only the direct answer to what was asked.
         # Get tools from tool_manager if available
         tools = tool_manager.get_tool_definitions() if tool_manager else None
 
-        # Prepare API call parameters efficiently
-        api_params = {
-            **self.base_params,
-            "messages": [{"role": "user", "content": query}],
-            "system": system_content
-        }
+        # Initialize message list with user query
+        messages = [{"role": "user", "content": query}]
 
-        # Add tools if available (only when we can execute them)
-        if tools and tool_manager:
-            api_params["tools"] = tools
-            api_params["tool_choice"] = {"type": "auto"}
+        # Track rounds and success
+        round_count = 0
+        has_successful_tool_call = False
 
-        # Get response from Claude
-        response = self.client.messages.create(**api_params)
+        # Sequential tool calling loop
+        while round_count < max_rounds:
+            # Prepare API call parameters
+            api_params = {
+                **self.base_params,
+                "messages": messages,
+                "system": system_content
+            }
 
-        # Handle tool execution if needed
-        if response.stop_reason == "tool_use" and tool_manager:
-            return self._handle_tool_execution(response, api_params, tool_manager)
+            # Add tools if available (only when we can execute them)
+            if tools and tool_manager:
+                api_params["tools"] = tools
+                api_params["tool_choice"] = {"type": "auto"}
 
-        # Return direct response
-        return response.content[0].text
+            # Get response from Claude
+            response = self.client.messages.create(**api_params)
+
+            # Check if tool was used
+            if response.stop_reason == "tool_use" and tool_manager:
+                # Execute tools and update messages for next round
+                messages, tool_success = self._execute_tools_and_update_messages(
+                    response, messages, tool_manager
+                )
+                if tool_success:
+                    has_successful_tool_call = True
+                round_count += 1
+            else:
+                # No tool use - we have our final response
+                return response.content[0].text
+
+        # Max rounds reached - make final call without tools to synthesize
+        return self._get_final_response(messages, system_content, has_successful_tool_call)
     
-    def _handle_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager):
+    def _execute_tools_and_update_messages(self, response, messages, tool_manager):
         """
-        Handle execution of tool calls and get follow-up response.
-        
+        Execute tools from Claude's response with error resilience.
+        Even if tools fail, errors are passed to Claude for graceful handling.
+
         Args:
-            initial_response: The response containing tool use requests
-            base_params: Base API parameters
+            response: Claude's response containing tool_use blocks
+            messages: Current message list
             tool_manager: Manager to execute tools
-            
+
         Returns:
-            Final response text after tool execution
+            Tuple of (updated_messages, success_flag)
+            - updated_messages: Message list with assistant response and tool results
+            - success_flag: True if at least one tool executed successfully
         """
         # Start with existing messages
-        messages = base_params["messages"].copy()
-        
+        new_messages = messages.copy()
+
         # Add AI's tool use response
-        messages.append({"role": "assistant", "content": initial_response.content})
-        
+        new_messages.append({"role": "assistant", "content": response.content})
+
         # Execute all tool calls and collect results
         tool_results = []
-        for content_block in initial_response.content:
+        any_tool_succeeded = False
+
+        for content_block in response.content:
             if content_block.type == "tool_use":
-                tool_result = tool_manager.execute_tool(
-                    content_block.name, 
-                    **content_block.input
-                )
-                
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": content_block.id,
-                    "content": tool_result
-                })
-        
+                try:
+                    # Attempt tool execution
+                    tool_result = tool_manager.execute_tool(
+                        content_block.name,
+                        **content_block.input
+                    )
+
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": content_block.id,
+                        "content": tool_result
+                    })
+                    any_tool_succeeded = True
+
+                except Exception as e:
+                    # Tool failed - pass error to Claude for graceful handling
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": content_block.id,
+                        "content": f"Error executing tool: {str(e)}",
+                        "is_error": True
+                    })
+
         # Add tool results as single message
         if tool_results:
-            messages.append({"role": "user", "content": tool_results})
-        
-        # Prepare final API call without tools
-        final_params = {
-            **self.base_params,
-            "messages": messages,
-            "system": base_params["system"]
-        }
-        
-        # Get final response
-        final_response = self.client.messages.create(**final_params)
-        return final_response.content[0].text
+            new_messages.append({"role": "user", "content": tool_results})
+
+        return new_messages, any_tool_succeeded
+
+    def _get_final_response(self, messages, system_content: str, has_successful_tool_call: bool) -> str:
+        """
+        Get final response after max rounds exhausted.
+        Implements tiered fallback for error resilience.
+
+        Args:
+            messages: Complete message history
+            system_content: System prompt
+            has_successful_tool_call: Whether any tool call succeeded during execution
+
+        Returns:
+            Final response text
+        """
+        try:
+            # Attempt final API call WITHOUT tools to force synthesis
+            final_params = {
+                **self.base_params,
+                "messages": messages,
+                "system": system_content
+                # NOTE: No "tools" parameter - forces text response
+            }
+
+            final_response = self.client.messages.create(**final_params)
+            return final_response.content[0].text
+
+        except Exception as e:
+            # Final API call failed - return appropriate error message
+            if has_successful_tool_call:
+                return "I found some information but encountered an error completing your request. Please try asking your question again."
+            else:
+                return "I'm having trouble accessing course information right now. Please try asking a general question I can answer directly, or try again later."
