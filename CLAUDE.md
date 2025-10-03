@@ -46,13 +46,32 @@ uv run pytest tests/test_search_tools.py -v
 uv run pytest tests/ --cov=backend
 ```
 
+### Code Quality Tools
+```bash
+# Format code (black + isort)
+./scripts/format.sh
+
+# Run linting and type checks
+./scripts/lint.sh
+
+# Run all quality checks (format + lint + tests)
+./scripts/check.sh
+
+# Individual tool commands:
+uv run black backend/                  # Format with black
+uv run isort backend/                  # Sort imports
+uv run flake8 backend/                 # Lint with flake8
+uv run mypy backend/                   # Type check with mypy
+```
+
 **Development Workflow for New Features:**
 1. Write tests first (TDD approach)
 2. Run existing tests: `uv run pytest` to ensure no regressions
 3. Implement feature
 4. Add/update tests for new functionality
-5. Ensure ALL tests pass before committing
-6. Consider testing edge cases and error conditions
+5. **Run quality checks: `./scripts/check.sh`**
+6. Ensure ALL tests pass and code is properly formatted before committing
+7. Consider testing edge cases and error conditions
 
 ### Environment Setup
 ```bash

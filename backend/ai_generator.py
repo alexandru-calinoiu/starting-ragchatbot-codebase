@@ -1,9 +1,11 @@
+from typing import Any, Dict, Optional
+
 import anthropic
-from typing import Optional, Dict, Any
+
 
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
-    
+
     # Static system prompt to avoid rebuilding on each call
     SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to a comprehensive search tool for course information.
 
@@ -33,22 +35,21 @@ All responses must be:
 4. **Example-supported** - Include relevant examples when they aid understanding
 Provide only the direct answer to what was asked.
 """
-    
+
     def __init__(self, api_key: str, model: str):
         self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
-        
+
         # Pre-build base API parameters
-        self.base_params = {
-            "model": self.model,
-            "temperature": 0,
-            "max_tokens": 800
-        }
-    
-    def generate_response(self, query: str,
-                         conversation_history: Optional[str] = None,
-                         tool_manager=None,
-                         max_rounds: int = 2) -> str:
+        self.base_params = {"model": self.model, "temperature": 0, "max_tokens": 800}
+
+    def generate_response(
+        self,
+        query: str,
+        conversation_history: Optional[str] = None,
+        tool_manager=None,
+        max_rounds: int = 2,
+    ) -> str:
         """
         Generate AI response with sequential tool calling support (up to max_rounds).
         Implements graceful error handling - continues even if individual tool calls fail.
@@ -86,7 +87,7 @@ Provide only the direct answer to what was asked.
             api_params = {
                 **self.base_params,
                 "messages": messages,
-                "system": system_content
+                "system": system_content,
             }
 
             # Add tools if available (only when we can execute them)
@@ -111,8 +112,10 @@ Provide only the direct answer to what was asked.
                 return response.content[0].text
 
         # Max rounds reached - make final call without tools to synthesize
-        return self._get_final_response(messages, system_content, has_successful_tool_call)
-    
+        return self._get_final_response(
+            messages, system_content, has_successful_tool_call
+        )
+
     def _execute_tools_and_update_messages(self, response, messages, tool_manager):
         """
         Execute tools from Claude's response with error resilience.
@@ -143,25 +146,28 @@ Provide only the direct answer to what was asked.
                 try:
                     # Attempt tool execution
                     tool_result = tool_manager.execute_tool(
-                        content_block.name,
-                        **content_block.input
+                        content_block.name, **content_block.input
                     )
 
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": content_block.id,
-                        "content": tool_result
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": content_block.id,
+                            "content": tool_result,
+                        }
+                    )
                     any_tool_succeeded = True
 
                 except Exception as e:
                     # Tool failed - pass error to Claude for graceful handling
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": content_block.id,
-                        "content": f"Error executing tool: {str(e)}",
-                        "is_error": True
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": content_block.id,
+                            "content": f"Error executing tool: {str(e)}",
+                            "is_error": True,
+                        }
+                    )
 
         # Add tool results as single message
         if tool_results:
@@ -169,7 +175,9 @@ Provide only the direct answer to what was asked.
 
         return new_messages, any_tool_succeeded
 
-    def _get_final_response(self, messages, system_content: str, has_successful_tool_call: bool) -> str:
+    def _get_final_response(
+        self, messages, system_content: str, has_successful_tool_call: bool
+    ) -> str:
         """
         Get final response after max rounds exhausted.
         Implements tiered fallback for error resilience.
@@ -187,7 +195,7 @@ Provide only the direct answer to what was asked.
             final_params = {
                 **self.base_params,
                 "messages": messages,
-                "system": system_content
+                "system": system_content,
                 # NOTE: No "tools" parameter - forces text response
             }
 

@@ -1,9 +1,10 @@
-import pytest
-from unittest.mock import Mock
-import sys
 import os
+import sys
+from unittest.mock import Mock
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from search_tools import CourseSearchTool, ToolManager
 from vector_store import SearchResults
@@ -49,28 +50,36 @@ class TestCourseSearchToolDefinition:
 
 class TestCourseSearchToolExecuteSuccess:
 
-    def test_execute_returns_formatted_results_for_computer_use_query(self, mock_vector_store_with_query_support):
+    def test_execute_returns_formatted_results_for_computer_use_query(
+        self, mock_vector_store_with_query_support
+    ):
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         result = tool.execute(query="computer use")
 
         assert "Computer use allows models" in result
 
-    def test_execute_includes_course_title_in_output(self, mock_vector_store_with_query_support):
+    def test_execute_includes_course_title_in_output(
+        self, mock_vector_store_with_query_support
+    ):
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         result = tool.execute(query="computer use")
 
         assert "Building Towards Computer Use with Anthropic" in result
 
-    def test_execute_includes_lesson_number_in_output(self, mock_vector_store_with_query_support):
+    def test_execute_includes_lesson_number_in_output(
+        self, mock_vector_store_with_query_support
+    ):
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         result = tool.execute(query="computer use")
 
         assert "Lesson 0" in result
 
-    def test_execute_returns_multiple_documents_joined(self, mock_vector_store_with_query_support):
+    def test_execute_returns_multiple_documents_joined(
+        self, mock_vector_store_with_query_support
+    ):
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         result = tool.execute(query="computer use")
@@ -85,7 +94,7 @@ class TestCourseSearchToolExecuteWithFilters:
         mock_vector_store.search.return_value = SearchResults(
             documents=["Test content"],
             metadata=[{"course_title": "Test Course", "lesson_number": 1}],
-            distances=[0.1]
+            distances=[0.1],
         )
         tool = CourseSearchTool(mock_vector_store)
 
@@ -98,7 +107,7 @@ class TestCourseSearchToolExecuteWithFilters:
         mock_vector_store.search.return_value = SearchResults(
             documents=["Test content"],
             metadata=[{"course_title": "Test Course", "lesson_number": 2}],
-            distances=[0.1]
+            distances=[0.1],
         )
         tool = CourseSearchTool(mock_vector_store)
 
@@ -110,12 +119,11 @@ class TestCourseSearchToolExecuteWithFilters:
 
 class TestCourseSearchToolExecuteErrors:
 
-    def test_execute_returns_error_message_when_search_has_error(self, mock_vector_store):
+    def test_execute_returns_error_message_when_search_has_error(
+        self, mock_vector_store
+    ):
         mock_vector_store.search.return_value = SearchResults(
-            documents=[],
-            metadata=[],
-            distances=[],
-            error="Database connection failed"
+            documents=[], metadata=[], distances=[], error="Database connection failed"
         )
         tool = CourseSearchTool(mock_vector_store)
 
@@ -123,11 +131,11 @@ class TestCourseSearchToolExecuteErrors:
 
         assert result == "Database connection failed"
 
-    def test_execute_returns_no_content_message_when_empty_results(self, mock_vector_store):
+    def test_execute_returns_no_content_message_when_empty_results(
+        self, mock_vector_store
+    ):
         mock_vector_store.search.return_value = SearchResults(
-            documents=[],
-            metadata=[],
-            distances=[]
+            documents=[], metadata=[], distances=[]
         )
         tool = CourseSearchTool(mock_vector_store)
 
@@ -159,14 +167,18 @@ class TestCourseSearchToolSourceTracking:
 
         assert tool.last_sources == []
 
-    def test_last_sources_populated_after_successful_execute(self, mock_vector_store_with_query_support):
+    def test_last_sources_populated_after_successful_execute(
+        self, mock_vector_store_with_query_support
+    ):
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         tool.execute(query="computer use")
 
         assert len(tool.last_sources) == 2
 
-    def test_last_sources_includes_course_and_lesson_info(self, mock_vector_store_with_query_support):
+    def test_last_sources_includes_course_and_lesson_info(
+        self, mock_vector_store_with_query_support
+    ):
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         tool.execute(query="AI safety")
@@ -175,8 +187,12 @@ class TestCourseSearchToolSourceTracking:
         assert "Building Towards Computer Use with Anthropic" in source
         assert "Lesson 1" in source
 
-    def test_last_sources_includes_lesson_link_when_available(self, mock_vector_store_with_query_support):
-        mock_vector_store_with_query_support.get_lesson_link.return_value = "https://example.com/lesson/1"
+    def test_last_sources_includes_lesson_link_when_available(
+        self, mock_vector_store_with_query_support
+    ):
+        mock_vector_store_with_query_support.get_lesson_link.return_value = (
+            "https://example.com/lesson/1"
+        )
         tool = CourseSearchTool(mock_vector_store_with_query_support)
 
         tool.execute(query="AI safety")
@@ -205,7 +221,9 @@ class TestToolManager:
         assert isinstance(definitions, list)
         assert len(definitions) == 1
 
-    def test_get_tool_definitions_includes_registered_tool_definition(self, mock_vector_store):
+    def test_get_tool_definitions_includes_registered_tool_definition(
+        self, mock_vector_store
+    ):
         manager = ToolManager()
         tool = CourseSearchTool(mock_vector_store)
         manager.register_tool(tool)
@@ -214,7 +232,9 @@ class TestToolManager:
 
         assert definitions[0]["name"] == "search_course_content"
 
-    def test_execute_tool_calls_correct_tool_with_params(self, mock_vector_store_with_query_support):
+    def test_execute_tool_calls_correct_tool_with_params(
+        self, mock_vector_store_with_query_support
+    ):
         manager = ToolManager()
         tool = CourseSearchTool(mock_vector_store_with_query_support)
         manager.register_tool(tool)
@@ -230,7 +250,9 @@ class TestToolManager:
 
         assert "not found" in result
 
-    def test_get_last_sources_returns_sources_from_executed_tool(self, mock_vector_store_with_query_support):
+    def test_get_last_sources_returns_sources_from_executed_tool(
+        self, mock_vector_store_with_query_support
+    ):
         manager = ToolManager()
         tool = CourseSearchTool(mock_vector_store_with_query_support)
         manager.register_tool(tool)
@@ -247,7 +269,9 @@ class TestToolManager:
 
         assert sources == []
 
-    def test_reset_sources_clears_all_tool_sources(self, mock_vector_store_with_query_support):
+    def test_reset_sources_clears_all_tool_sources(
+        self, mock_vector_store_with_query_support
+    ):
         manager = ToolManager()
         tool = CourseSearchTool(mock_vector_store_with_query_support)
         manager.register_tool(tool)

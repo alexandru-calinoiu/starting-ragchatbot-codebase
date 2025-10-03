@@ -1,13 +1,14 @@
-import pytest
-from unittest.mock import Mock, MagicMock
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, Mock
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import pytest
 
-from models import Course, Lesson, CourseChunk
-from vector_store import SearchResults
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from config import Config
+from models import Course, CourseChunk, Lesson
+from vector_store import SearchResults
 
 
 @pytest.fixture
@@ -31,14 +32,14 @@ def sample_course():
             Lesson(
                 lesson_number=0,
                 title="Introduction",
-                lesson_link="https://learn.deeplearning.ai/test/lesson/1"
+                lesson_link="https://learn.deeplearning.ai/test/lesson/1",
             ),
             Lesson(
                 lesson_number=1,
                 title="Overview",
-                lesson_link="https://learn.deeplearning.ai/test/lesson/2"
-            )
-        ]
+                lesson_link="https://learn.deeplearning.ai/test/lesson/2",
+            ),
+        ],
     )
 
 
@@ -49,20 +50,20 @@ def sample_chunks(sample_course):
             content="Lesson 0 content: This is introduction to computer use with Anthropic models.",
             course_title=sample_course.title,
             lesson_number=0,
-            chunk_index=0
+            chunk_index=0,
         ),
         CourseChunk(
             content="Computer use allows models to interact with computers through screenshots and actions.",
             course_title=sample_course.title,
             lesson_number=0,
-            chunk_index=1
+            chunk_index=1,
         ),
         CourseChunk(
             content="Lesson 1 content: Overview of Anthropic's approach to AI safety and alignment.",
             course_title=sample_course.title,
             lesson_number=1,
-            chunk_index=2
-        )
+            chunk_index=2,
+        ),
     ]
 
 
@@ -71,29 +72,25 @@ def sample_search_results():
     return SearchResults(
         documents=[
             "Lesson 0 content: This is introduction to computer use with Anthropic models.",
-            "Computer use allows models to interact with computers through screenshots and actions."
+            "Computer use allows models to interact with computers through screenshots and actions.",
         ],
         metadata=[
             {
                 "course_title": "Building Towards Computer Use with Anthropic",
-                "lesson_number": 0
+                "lesson_number": 0,
             },
             {
                 "course_title": "Building Towards Computer Use with Anthropic",
-                "lesson_number": 0
-            }
+                "lesson_number": 0,
+            },
         ],
-        distances=[0.1, 0.2]
+        distances=[0.1, 0.2],
     )
 
 
 @pytest.fixture
 def empty_search_results():
-    return SearchResults(
-        documents=[],
-        metadata=[],
-        distances=[]
-    )
+    return SearchResults(documents=[], metadata=[], distances=[])
 
 
 @pytest.fixture
@@ -102,7 +99,7 @@ def error_search_results():
         documents=[],
         metadata=[],
         distances=[],
-        error="Search error: Connection timeout"
+        error="Search error: Connection timeout",
     )
 
 
@@ -112,37 +109,49 @@ def search_results_for_query(query: str) -> SearchResults:
         "computer use": SearchResults(
             documents=[
                 "Computer use allows models to interact with computers through screenshots and actions.",
-                "The computer use capability combines vision, tool use, and agentic workflows."
+                "The computer use capability combines vision, tool use, and agentic workflows.",
             ],
             metadata=[
-                {"course_title": "Building Towards Computer Use with Anthropic", "lesson_number": 0},
-                {"course_title": "Building Towards Computer Use with Anthropic", "lesson_number": 0}
+                {
+                    "course_title": "Building Towards Computer Use with Anthropic",
+                    "lesson_number": 0,
+                },
+                {
+                    "course_title": "Building Towards Computer Use with Anthropic",
+                    "lesson_number": 0,
+                },
             ],
-            distances=[0.1, 0.15]
+            distances=[0.1, 0.15],
         ),
         "AI safety": SearchResults(
             documents=[
                 "AI safety is a core principle at Anthropic focusing on alignment and interpretability."
             ],
             metadata=[
-                {"course_title": "Building Towards Computer Use with Anthropic", "lesson_number": 1}
+                {
+                    "course_title": "Building Towards Computer Use with Anthropic",
+                    "lesson_number": 1,
+                }
             ],
-            distances=[0.12]
+            distances=[0.12],
         ),
         "prompting tips": SearchResults(
             documents=[
                 "Effective prompting includes chain of thought and few-shot examples."
             ],
             metadata=[
-                {"course_title": "Building Towards Computer Use with Anthropic", "lesson_number": 3}
+                {
+                    "course_title": "Building Towards Computer Use with Anthropic",
+                    "lesson_number": 3,
+                }
             ],
-            distances=[0.08]
+            distances=[0.08],
         ),
     }
 
     return query_results.get(
         query,
-        SearchResults([], [], [], error=f"No mock registered for query: '{query}'")
+        SearchResults([], [], [], error=f"No mock registered for query: '{query}'"),
     )
 
 
@@ -150,7 +159,9 @@ def search_results_for_query(query: str) -> SearchResults:
 def mock_vector_store_with_query_support():
     """Mock vector store that returns query-specific results."""
     mock_store = Mock()
-    mock_store.search.side_effect = lambda **kwargs: search_results_for_query(kwargs.get('query', ''))
+    mock_store.search.side_effect = lambda **kwargs: search_results_for_query(
+        kwargs.get("query", "")
+    )
     mock_store.get_lesson_link = Mock(return_value="https://test.com/lesson/1")
     return mock_store
 
@@ -197,6 +208,10 @@ def mock_tool_use_response():
 @pytest.fixture
 def mock_final_response():
     mock_response = MagicMock()
-    mock_response.content = [MagicMock(text="Based on the search results, computer use allows models to interact with computers.")]
+    mock_response.content = [
+        MagicMock(
+            text="Based on the search results, computer use allows models to interact with computers."
+        )
+    ]
     mock_response.stop_reason = "end_turn"
     return mock_response

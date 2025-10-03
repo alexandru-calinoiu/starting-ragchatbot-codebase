@@ -1,0 +1,20 @@
+[flake8]
+max-line-length = 100
+extend-ignore = E203, W503, E402, F401, F841, E712, E501
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    chroma_db,
+    .mypy_cache,
+    .pytest_cache
+max-complexity = 25
+per-file-ignores =
+    __init__.py:F401
+    tests/*:F401,F403,F841,E712
+    conftest.py:E402,F401
+    app.py:E402,F401,F811
