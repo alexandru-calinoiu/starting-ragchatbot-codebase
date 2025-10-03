@@ -17,6 +17,7 @@ from vector_store import SearchResults
 @pytest.fixture
 def test_config():
     import tempfile
+
     config = Config()
     config.MAX_RESULTS = 5
     config.CHUNK_SIZE = 800
@@ -227,15 +228,15 @@ def mock_rag_system():
     mock_rag = Mock()
     mock_rag.query.return_value = (
         "This is a test response based on course materials.",
-        ["Course: Building Towards Computer Use with Anthropic - Lesson 1"]
+        ["Course: Building Towards Computer Use with Anthropic - Lesson 1"],
     )
     mock_rag.get_course_analytics.return_value = {
         "total_courses": 3,
         "course_titles": [
             "Building Towards Computer Use with Anthropic",
             "AI Safety Fundamentals",
-            "Prompt Engineering Best Practices"
-        ]
+            "Prompt Engineering Best Practices",
+        ],
     }
     mock_rag.session_manager = Mock()
     mock_rag.session_manager.create_session.return_value = "test-session-123"
@@ -247,21 +248,19 @@ def mock_rag_system():
 @pytest.fixture
 def test_app(mock_rag_system):
     """Create test FastAPI app that mirrors the actual app structure."""
+    from typing import List, Optional
+
     from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.middleware.trustedhost import TrustedHostMiddleware
     from pydantic import BaseModel
-    from typing import List, Optional
-    
+
     # Create test app with same configuration as real app
     app = FastAPI(title="Course Materials RAG System", root_path="")
-    
+
     # Add trusted host middleware (same as real app)
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=["*"]
-    )
-    
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+
     # Add CORS middleware (same as real app)
     app.add_middleware(
         CORSMiddleware,
@@ -271,21 +270,21 @@ def test_app(mock_rag_system):
         allow_headers=["*"],
         expose_headers=["*"],
     )
-    
+
     # Pydantic models (same as real app)
     class QueryRequest(BaseModel):
         query: str
         session_id: Optional[str] = None
-    
+
     class QueryResponse(BaseModel):
         answer: str
         sources: List[str]
         session_id: str
-    
+
     class CourseStats(BaseModel):
         total_courses: int
         course_titles: List[str]
-    
+
     # API endpoints (same as real app)
     @app.post("/api/query", response_model=QueryResponse)
     async def query_documents(request: QueryRequest):
@@ -293,28 +292,24 @@ def test_app(mock_rag_system):
             session_id = request.session_id
             if not session_id:
                 session_id = mock_rag_system.session_manager.create_session()
-            
+
             answer, sources = mock_rag_system.query(request.query, session_id)
-            
-            return QueryResponse(
-                answer=answer,
-                sources=sources,
-                session_id=session_id
-            )
+
+            return QueryResponse(answer=answer, sources=sources, session_id=session_id)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.get("/api/courses", response_model=CourseStats)
     async def get_course_stats():
         try:
             analytics = mock_rag_system.get_course_analytics()
             return CourseStats(
                 total_courses=analytics["total_courses"],
-                course_titles=analytics["course_titles"]
+                course_titles=analytics["course_titles"],
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.post("/api/sessions/{session_id}/clear")
     async def clear_session(session_id: str):
         try:
@@ -322,7 +317,7 @@ def test_app(mock_rag_system):
             return {"message": "Session cleared successfully"}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     return app
 
 
@@ -352,7 +347,7 @@ def mock_chroma_client():
     mock_collection.query.return_value = {
         "documents": [["Test document content"]],
         "metadatas": [[{"course_title": "Test Course", "lesson_number": 0}]],
-        "distances": [[0.1]]
+        "distances": [[0.1]],
     }
     mock_collection.add.return_value = None
     mock_collection.delete.return_value = None
@@ -363,10 +358,7 @@ def mock_chroma_client():
 @pytest.fixture
 def sample_query_request():
     """Sample query request data."""
-    return {
-        "query": "What is computer use in Anthropic models?",
-        "session_id": None
-    }
+    return {"query": "What is computer use in Anthropic models?", "session_id": None}
 
 
 @pytest.fixture
@@ -374,5 +366,5 @@ def sample_query_request_with_session():
     """Sample query request with existing session."""
     return {
         "query": "Tell me more about safety measures.",
-        "session_id": "existing-session-456"
+        "session_id": "existing-session-456",
     }
