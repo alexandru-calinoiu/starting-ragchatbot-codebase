@@ -98,7 +98,7 @@ Provide only the direct answer to what was asked.
             response = self.client.messages.create(**api_params)
 
             # Check if tool was used
-            if response.stop_reason == "tool_use" and tool_manager:
+            if response.stop_reason == "tool_use":
                 # Execute tools and update messages for next round
                 messages, tool_success = self._execute_tools_and_update_messages(
                     response, messages, tool_manager
@@ -194,7 +194,7 @@ Provide only the direct answer to what was asked.
             final_response = self.client.messages.create(**final_params)
             return final_response.content[0].text
 
-        except Exception as e:
+        except Exception:
             # Final API call failed - return appropriate error message
             if has_successful_tool_call:
                 return "I found some information but encountered an error completing your request. Please try asking your question again."
