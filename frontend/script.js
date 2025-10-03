@@ -3,9 +3,10 @@ const API_URL = '/api';
 
 // Global state
 let currentSessionId = null;
+let currentTheme = localStorage.getItem('theme') || 'dark';
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton, themeToggle;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,6 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
     newChatButton = document.getElementById('newChatButton');
+    themeToggle = document.getElementById('themeToggle');
+    
+    // Initialize theme
+    initializeTheme();
     
     setupEventListeners();
     createNewSession();
@@ -32,6 +37,17 @@ function setupEventListeners() {
     
     // New chat button
     newChatButton.addEventListener('click', startNewChat);
+    
+    // Theme toggle
+    themeToggle.addEventListener('click', toggleTheme);
+    
+    // Keyboard accessibility for theme toggle
+    themeToggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleTheme();
+        }
+    });
     
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
@@ -222,4 +238,56 @@ async function loadCourseStats() {
             courseTitles.innerHTML = '<span class="error">Failed to load courses</span>';
         }
     }
+}
+
+// Theme Functions
+function initializeTheme() {
+    // Apply the saved theme or default to dark
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateThemeToggleAria();
+}
+
+function toggleTheme() {
+    // Toggle between light and dark
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    // Apply the theme
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    
+    // Save preference
+    localStorage.setItem('theme', currentTheme);
+    
+    // Update ARIA label
+    updateThemeToggleAria();
+    
+    // Announce change for screen readers
+    announceThemeChange();
+}
+
+function updateThemeToggleAria() {
+    if (themeToggle) {
+        const label = currentTheme === 'dark' 
+            ? 'Switch to light theme' 
+            : 'Switch to dark theme';
+        themeToggle.setAttribute('aria-label', label);
+        themeToggle.setAttribute('title', label);
+    }
+}
+
+function announceThemeChange() {
+    // Create a temporary element for screen reader announcement
+    const announcement = document.createElement('div');
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.className = 'sr-only';
+    announcement.style.position = 'absolute';
+    announcement.style.left = '-10000px';
+    announcement.textContent = `Theme changed to ${currentTheme} mode`;
+    
+    document.body.appendChild(announcement);
+    
+    // Remove after announcement
+    setTimeout(() => {
+        document.body.removeChild(announcement);
+    }, 1000);
 }
