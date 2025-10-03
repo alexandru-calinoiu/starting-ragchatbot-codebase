@@ -1,5 +1,5 @@
 import anthropic
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
@@ -9,13 +9,18 @@ class AIGenerator:
 
 Search Tool Usage:
 - Use the search tool **only** for questions about specific course content or detailed educational materials
-- **One search per query maximum**
-- Synthesize search results into accurate, fact-based responses
-- If search yields no results, state this clearly without offering alternatives
+- **You may search up to 2 times** to gather information needed for complex questions
+- Use sequential searches strategically:
+  * First search: Get course outlines, lesson titles, or initial information
+  * Second search (if needed): Get specific content based on first search results
+- Synthesize all search results into accurate, fact-based responses
+- If search yields no results or fails, provide the best answer possible with available information
 
 Response Protocol:
 - **General knowledge questions**: Answer using existing knowledge without searching
 - **Course-specific questions**: Search first, then answer
+- **Complex questions**: Use sequential searches to build complete context
+- **If tools fail or return errors**: Acknowledge the limitation briefly and answer what you can
 - **No meta-commentary**:
  - Provide direct answers only — no reasoning process, search explanations, or question-type analysis
  - Do not mention "based on the search results"
@@ -42,47 +47,48 @@ Provide only the direct answer to what was asked.
     
     def generate_response(self, query: str,
                          conversation_history: Optional[str] = None,
-                         tools: Optional[List] = None,
                          tool_manager=None) -> str:
         """
         Generate AI response with optional tool usage and conversation context.
-        
+
         Args:
             query: The user's question or request
             conversation_history: Previous messages for context
-            tools: Available tools the AI can use
-            tool_manager: Manager to execute tools
-            
+            tool_manager: Manager to execute tools (provides tool definitions and execution)
+
         Returns:
             Generated response as string
         """
-        
+
         # Build system content efficiently - avoid string ops when possible
         system_content = (
             f"{self.SYSTEM_PROMPT}\n\nPrevious conversation:\n{conversation_history}"
-            if conversation_history 
+            if conversation_history
             else self.SYSTEM_PROMPT
         )
-        
+
+        # Get tools from tool_manager if available
+        tools = tool_manager.get_tool_definitions() if tool_manager else None
+
         # Prepare API call parameters efficiently
         api_params = {
             **self.base_params,
             "messages": [{"role": "user", "content": query}],
             "system": system_content
         }
-        
-        # Add tools if available
-        if tools:
+
+        # Add tools if available (only when we can execute them)
+        if tools and tool_manager:
             api_params["tools"] = tools
             api_params["tool_choice"] = {"type": "auto"}
-        
+
         # Get response from Claude
         response = self.client.messages.create(**api_params)
-        
+
         # Handle tool execution if needed
         if response.stop_reason == "tool_use" and tool_manager:
             return self._handle_tool_execution(response, api_params, tool_manager)
-        
+
         # Return direct response
         return response.content[0].text
     

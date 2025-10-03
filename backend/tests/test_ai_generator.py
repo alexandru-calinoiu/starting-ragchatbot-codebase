@@ -75,7 +75,11 @@ class TestAIGeneratorWithTools:
             generator.client = mock_client
             tools = [{"name": "test_tool", "description": "A test tool"}]
 
-            result = generator.generate_response(query="Test", tools=tools)
+            # Mock tool_manager that returns tools
+            mock_tool_manager = MagicMock()
+            mock_tool_manager.get_tool_definitions.return_value = tools
+
+            result = generator.generate_response(query="Test", tool_manager=mock_tool_manager)
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
             assert "tools" in call_kwargs
@@ -93,7 +97,11 @@ class TestAIGeneratorWithTools:
             generator.client = mock_client
             tools = [{"name": "test_tool"}]
 
-            result = generator.generate_response(query="Test", tools=tools)
+            # Mock tool_manager that returns tools
+            mock_tool_manager = MagicMock()
+            mock_tool_manager.get_tool_definitions.return_value = tools
+
+            result = generator.generate_response(query="Test", tool_manager=mock_tool_manager)
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
             assert call_kwargs["tool_choice"]["type"] == "auto"
@@ -126,9 +134,8 @@ class TestAIGeneratorToolExecution:
             tool_manager = ToolManager()
             tool = CourseSearchTool(mock_vector_store_with_query_support)
             tool_manager.register_tool(tool)
-            tools = tool_manager.get_tool_definitions()
 
-            result = generator.generate_response(query="What is computer use?", tools=tools, tool_manager=tool_manager)
+            result = generator.generate_response(query="What is computer use?", tool_manager=tool_manager)
 
             assert "computer use enables AI interaction" in result
 
@@ -157,9 +164,8 @@ class TestAIGeneratorToolExecution:
             tool_manager = ToolManager()
             tool = CourseSearchTool(mock_vector_store_with_query_support)
             tool_manager.register_tool(tool)
-            tools = tool_manager.get_tool_definitions()
 
-            result = generator.generate_response(query="Test", tools=tools, tool_manager=tool_manager)
+            result = generator.generate_response(query="Test", tool_manager=tool_manager)
 
             assert mock_client.messages.create.call_count == 2
 
@@ -188,9 +194,8 @@ class TestAIGeneratorToolExecution:
             tool_manager = ToolManager()
             tool = CourseSearchTool(mock_vector_store_with_query_support)
             tool_manager.register_tool(tool)
-            tools = tool_manager.get_tool_definitions()
 
-            result = generator.generate_response(query="Test", tools=tools, tool_manager=tool_manager)
+            result = generator.generate_response(query="Test", tool_manager=tool_manager)
 
             second_call_kwargs = mock_client.messages.create.call_args_list[1].kwargs
             messages = second_call_kwargs["messages"]

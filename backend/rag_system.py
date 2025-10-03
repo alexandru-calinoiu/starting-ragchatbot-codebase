@@ -122,7 +122,6 @@ class RAGSystem:
         response = self.ai_generator.generate_response(
             query=prompt,
             conversation_history=history,
-            tools=self.tool_manager.get_tool_definitions(),
             tool_manager=self.tool_manager
         )
         
